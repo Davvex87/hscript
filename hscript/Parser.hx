@@ -363,9 +363,7 @@ class Parser {
 				{
 					var result = ex[0];
 					for (i in 1...ex.length)
-					{
 						result = makeBinop("+", result, ex[i]);
-					}
 					return parseExprNext(mk(EParent(result), p1));
 				}
 			}
@@ -679,6 +677,12 @@ class Parser {
 			error(ECustom("Invalid string literal"), tokenMin, tokenMax);
 
 		var nextStr = "";
+		function pushNextStr() {
+			if (nextStr != "") {
+				ex.push(mk(EConst(CString(nextStr)), tokenMin, tokenMax));
+				nextStr = "";
+			}
+		}
 
 		var i = 0;
 		var c = s.charCodeAt(i);
@@ -686,7 +690,7 @@ class Parser {
 		{
 			if (StringTools.isEof(c))
 			{
-				ex.push(mk(EConst(CString(nextStr)), tokenMin, tokenMax));
+				pushNextStr();
 				break;
 			}
 
@@ -715,12 +719,14 @@ class Parser {
 					}
 					id += String.fromCharCode(c);
 				}
-				ex.push(mk(EConst(CString(nextStr)), tokenMin, tokenMax));
+				pushNextStr();
 				ex.push(mk(EIdent(id), tokenMin, tokenMax));
 				nextStr = "";
 			}
 			else if (c == "{".code)
 			{
+				pushNextStr();
+				nextStr = "";
 				var lastInput = input;
 				var lastReadPos = readPos;
 				var lastChar = char;
@@ -760,6 +766,7 @@ class Parser {
 				}
 				var endPos = readPos - 1;
 				reset();
+				// cool hack to quickly close expressions
 				input = s.substring(i, endPos) + ";}";
 				readPos = 0;
 				var a = new Array();
@@ -769,7 +776,7 @@ class Parser {
 					push(tk);
 					parseFullExpr(a);
 				}
-				ex.push(mk(EConst(CString(nextStr)), tokenMin, tokenMax));
+				pushNextStr();
 				ex.push(mk(EBlock(a),0));
 				nextStr = "";
 				input = lastInput;
@@ -782,7 +789,6 @@ class Parser {
 			else
 			{
 				nextStr += "$";
-				i--;
 			}
 		}
 		return ex;
@@ -1529,6 +1535,10 @@ class Parser {
 	inline function readChar() {
 		return StringTools.fastCodeAt(input, readPos++);
 	}
+	
+	inline function peekChar() {
+		return StringTools.fastCodeAt(input, readPos);
+	}
 
 	function readString( until ) {
 		var c = 0;
@@ -1582,7 +1592,36 @@ class Parser {
 				esc = true;
 			else if( c == until )
 				break;
-			else {
+			else if (c == '$'.code && peekChar() == '{'.code)
+			{
+				b.addChar('$'.code);
+				var brOpens = -1;
+				while (true)
+				{
+					c = readChar();
+					if (StringTools.isEof(c))
+					{
+						line = old;
+						error(EUnterminatedString, p1, p1);
+						break;
+					}
+					b.addChar(c);
+					if ( c == '{'.code )
+					{
+						if (brOpens == -1)
+							brOpens = 0;
+						brOpens++;
+					}
+					else if ( c == '}'.code )
+					{
+						if (brOpens == -1)
+							invalidChar(c);
+						brOpens--;
+						if (brOpens <= 0)
+							break;
+					}
+				}
+			} else {
 				if( c == 10 ) line++;
 				b.addChar(c);
 			}
