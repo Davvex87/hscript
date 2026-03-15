@@ -751,20 +751,20 @@ class Parser {
 					{
 						if (brOpens == -1)
 							unexpected(tk);
-						if (brOpens == 0)
-							break;
 						brOpens--;
+						if (brOpens <= 0)
+							break;
 					}
-					if( tk == TEof ) break;
+					if( tk == TEof )
+						error(EUnterminatedString, currentPos, currentPos);
 				}
 				var endPos = readPos - 1;
 				reset();
 				input = s.substring(i, endPos) + ";}";
+				readPos = 0;
 				var a = new Array();
 				while( true ) {
 					var tk = token();
-					if (readPos >= endPos)
-						break;
 					if( tk == TEof ) break;
 					push(tk);
 					parseFullExpr(a);
@@ -773,7 +773,7 @@ class Parser {
 				ex.push(mk(EBlock(a),0));
 				nextStr = "";
 				input = lastInput;
-				i = readPos;
+				i = endPos + 1;
 				c = s.charCodeAt(i);
 				readPos = lastReadPos;
 				char = lastChar;
