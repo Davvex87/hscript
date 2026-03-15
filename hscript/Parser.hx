@@ -354,6 +354,21 @@ class Parser {
 				e = mk(EIdent(id));
 			return isBlock(e) ? e : parseExprNext(e);
 		case TConst(c):
+			if (c.match(CString(_, SingleQuotes)))
+			{
+				var ex = makeInterpolatedStr(tk);
+				if (ex.length == 1)
+					return parseExprNext(ex[0]);
+				else
+				{
+					var result = ex[0];
+					for (i in 1...ex.length)
+					{
+						result = makeBinop("+", result, ex[i]);
+					}
+					return parseExprNext(mk(EParent(result), p1));
+				}
+			}
 			return parseExprNext(mk(EConst(c)));
 		case TPOpen:
 			tk = token();
@@ -642,6 +657,115 @@ class Parser {
 		default:
 			mk(EBinop(op,e1,e),pmin(e1),pmax(e));
 		}
+	}
+
+	function makeInterpolatedStr(tk:Token):Array<Expr> {
+		var ex = new Array();
+		var s = switch(tk)
+		{
+		case TConst(c):
+			switch(c)
+			{
+			case CString(s):
+				s;
+			case _:
+				null;
+			}
+		case _:
+			null;
+		}
+
+		if (s == null)
+			error(ECustom("Invalid string literal"), tokenMin, tokenMax);
+
+		var nextStr = "";
+
+		var i = 0;
+		var c = s.charCodeAt(i);
+		while (true)
+		{
+			if (StringTools.isEof(c))
+			{
+				ex.push(mk(EConst(CString(nextStr)), tokenMin, tokenMax));
+				break;
+			}
+
+			if (c != "$".code)
+			{
+				nextStr += String.fromCharCode(c);
+				c = s.charCodeAt(++i);
+				continue;
+			}
+
+			c = s.charCodeAt(++i);
+			if (c >= 48 && c <= 57 || c == "$".code)
+			{
+				nextStr += "$" + String.fromCharCode(c);
+				c = s.charCodeAt(++i);
+				continue;
+			}
+
+			if( idents[c] ) {
+				var id = String.fromCharCode(c);
+				while( true ) {
+					c = s.charCodeAt(++i);
+					if( StringTools.isEof(c) ) c = 0;
+					if( !idents[c] ) {
+						break;
+					}
+					id += String.fromCharCode(c);
+				}
+				ex.push(mk(EConst(CString(nextStr)), tokenMin, tokenMax));
+				ex.push(mk(EIdent(id), tokenMin, tokenMax));
+				nextStr = "";
+			}
+			else if (c == "{".code)
+			{
+				var lastInput = input;
+				var lastReadPos = readPos;
+				var lastChar = char;
+				var lastTokens = tokens;
+				input = s;
+				readPos = i + 1;
+				char = -1;
+				#if hscriptPos
+				tokens = new List();
+				#else
+				tokens = new haxe.ds.GenericStack<Token>();
+				#end
+				var a = new Array();
+				var brOpens = 0;
+				while( true ) {
+					var tk = token();
+					if ( tk == TBrOpen )
+						brOpens++;
+					else if ( tk == TBrClose )
+					{
+						if (brOpens == 0)
+							break;
+						brOpens--;
+					}
+					if( tk == TEof ) break;
+					push(tk);
+					parseFullExpr(a);
+				}
+				ex.push(mk(EConst(CString(nextStr)), tokenMin, tokenMax));
+				ex.push(mk(EBlock(a),0));
+				nextStr = "";
+				input = lastInput;
+				i = readPos;
+				c = s.charCodeAt(i);
+				readPos = lastReadPos;
+				char = lastChar;
+				tokens = lastTokens;
+			}
+			else
+			{
+				nextStr += "$";
+				i--;
+			}
+		}
+		return ex;
 	}
 
 	function parseStructure(id) {
@@ -1589,7 +1713,8 @@ class Parser {
 			case "}".code: return TBrClose;
 			case "[".code: return TBkOpen;
 			case "]".code: return TBkClose;
-			case "'".code, '"'.code: return TConst( CString(readString(char)) );
+			case "'".code: return TConst( CString(readString(char), SingleQuotes) );
+			case '"'.code: return TConst( CString(readString(char), DoubleQuotes) );
 			case "?".code:
 				char = readChar();
 				if( char == ".".code )
