@@ -725,26 +725,46 @@ class Parser {
 				var lastReadPos = readPos;
 				var lastChar = char;
 				var lastTokens = tokens;
-				input = s;
-				readPos = i + 1;
-				char = -1;
-				#if hscriptPos
-				tokens = new List();
-				#else
-				tokens = new haxe.ds.GenericStack<Token>();
-				#end
-				var a = new Array();
-				var brOpens = 0;
+
+				function reset()
+				{
+					input = s;
+					readPos = i;
+					char = -1;
+					#if hscriptPos
+					tokens = new List();
+					#else
+					tokens = new haxe.ds.GenericStack<Token>();
+					#end
+				}
+				reset();
+				var brOpens = -1;
 				while( true ) {
 					var tk = token();
 					if ( tk == TBrOpen )
+					{
+						if (brOpens == -1)
+							brOpens = 0;
 						brOpens++;
+					}
 					else if ( tk == TBrClose )
 					{
+						if (brOpens == -1)
+							unexpected(tk);
 						if (brOpens == 0)
 							break;
 						brOpens--;
 					}
+					if( tk == TEof ) break;
+				}
+				var endPos = readPos - 1;
+				reset();
+				input = s.substring(i, endPos) + ";}";
+				var a = new Array();
+				while( true ) {
+					var tk = token();
+					if (readPos >= endPos)
+						break;
 					if( tk == TEof ) break;
 					push(tk);
 					parseFullExpr(a);
