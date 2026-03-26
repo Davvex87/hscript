@@ -690,7 +690,7 @@ class Parser {
 			}
 
 			c = StringTools.fastCodeAt(s, ++i);
-			if (c >= 48 && c <= 57 || c == "$".code)
+			if ((c >= "0".code && c <= "9".code) || c == "$".code)
 			{
 				nextStr.add("$");
 				nextStr.addChar(c);
