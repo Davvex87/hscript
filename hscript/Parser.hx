@@ -354,9 +354,9 @@ class Parser {
 				e = mk(EIdent(id));
 			return isBlock(e) ? e : parseExprNext(e);
 		case TConst(c):
-			if (c.match(CString(_, SingleQuotes)))
-			{
-				var ex = makeInterpolatedStr(tk);
+			switch( c ) {
+			case CString(s, SingleQuotes):
+				var ex = makeInterpolatedStr(s);
 				if (ex.length == 1)
 					return parseExprNext(ex[0]);
 				else
@@ -366,8 +366,9 @@ class Parser {
 						result = makeBinop("+", result, ex[i]);
 					return parseExprNext(mk(EParent(result), p1));
 				}
+			default:
+				return parseExprNext(mk(EConst(c)));
 			}
-			return parseExprNext(mk(EConst(c)));
 		case TPOpen:
 			tk = token();
 			if( tk == TPClose ) {
@@ -657,24 +658,8 @@ class Parser {
 		}
 	}
 
-	function makeInterpolatedStr(tk:Token):Array<Expr> {
+	function makeInterpolatedStr(s:String):Array<Expr> {
 		var ex = new Array();
-		var s = switch(tk)
-		{
-		case TConst(c):
-			switch(c)
-			{
-			case CString(s):
-				s;
-			case _:
-				null;
-			}
-		case _:
-			null;
-		}
-
-		if (s == null)
-			error(ECustom("Invalid string literal"), tokenMin, tokenMax);
 
 		var nextStr = "";
 		function pushNextStr() {
