@@ -661,11 +661,14 @@ class Parser {
 	function makeInterpolatedStr(s:String):Array<Expr> {
 		var ex = new Array();
 
-		var nextStr = "";
+		inline function newBuf()
+			return new StringBuf();
+
+		var nextStr = newBuf();
 		function pushNextStr() {
-			if (nextStr != "") {
-				ex.push(mk(EConst(CString(nextStr)), tokenMin, tokenMax));
-				nextStr = "";
+			if (nextStr.length > 0) {
+				ex.push(mk(EConst(CString(nextStr.toString())), tokenMin, tokenMax));
+				nextStr = newBuf();
 			}
 		}
 
@@ -681,7 +684,7 @@ class Parser {
 
 			if (c != "$".code)
 			{
-				nextStr += String.fromCharCode(c);
+				nextStr.addChar(c);
 				c = StringTools.fastCodeAt(s, ++i);
 				continue;
 			}
@@ -689,7 +692,8 @@ class Parser {
 			c = StringTools.fastCodeAt(s, ++i);
 			if (c >= 48 && c <= 57 || c == "$".code)
 			{
-				nextStr += "$" + String.fromCharCode(c);
+				nextStr.add("$");
+				nextStr.addChar(c);
 				c = StringTools.fastCodeAt(s, ++i);
 				continue;
 			}
@@ -706,12 +710,12 @@ class Parser {
 				}
 				pushNextStr();
 				ex.push(mk(EIdent(id), tokenMin, tokenMax));
-				nextStr = "";
+				nextStr = newBuf();
 			}
 			else if (c == "{".code)
 			{
 				pushNextStr();
-				nextStr = "";
+				nextStr = newBuf();
 				var lastInput = input;
 				var lastReadPos = readPos;
 				var lastChar = char;
@@ -763,7 +767,7 @@ class Parser {
 				}
 				pushNextStr();
 				ex.push(mk(EBlock(a),0));
-				nextStr = "";
+				nextStr = newBuf();
 				input = lastInput;
 				i = endPos + 1;
 				c = StringTools.fastCodeAt(s, i);
@@ -773,7 +777,7 @@ class Parser {
 			}
 			else
 			{
-				nextStr += "$";
+				nextStr.add("$");
 			}
 		}
 		return ex;
