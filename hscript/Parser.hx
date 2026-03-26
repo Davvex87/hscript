@@ -670,7 +670,7 @@ class Parser {
 		}
 
 		var i = 0;
-		var c = s.charCodeAt(i);
+		var c = StringTools.fastCodeAt(s, i);
 		while (true)
 		{
 			if (StringTools.isEof(c))
@@ -682,22 +682,22 @@ class Parser {
 			if (c != "$".code)
 			{
 				nextStr += String.fromCharCode(c);
-				c = s.charCodeAt(++i);
+				c = StringTools.fastCodeAt(s, ++i);
 				continue;
 			}
 
-			c = s.charCodeAt(++i);
+			c = StringTools.fastCodeAt(s, ++i);
 			if (c >= 48 && c <= 57 || c == "$".code)
 			{
 				nextStr += "$" + String.fromCharCode(c);
-				c = s.charCodeAt(++i);
+				c = StringTools.fastCodeAt(s, ++i);
 				continue;
 			}
 
 			if( idents[c] ) {
 				var id = String.fromCharCode(c);
 				while( true ) {
-					c = s.charCodeAt(++i);
+					c = StringTools.fastCodeAt(s, ++i);
 					if( StringTools.isEof(c) ) c = 0;
 					if( !idents[c] ) {
 						break;
@@ -766,7 +766,7 @@ class Parser {
 				nextStr = "";
 				input = lastInput;
 				i = endPos + 1;
-				c = s.charCodeAt(i);
+				c = StringTools.fastCodeAt(s, i);
 				readPos = lastReadPos;
 				char = lastChar;
 				tokens = lastTokens;
