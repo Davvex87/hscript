@@ -720,14 +720,25 @@ class Parser {
 				var lastReadPos = readPos;
 				var lastChar = char;
 				var lastTokens = tokens;
+				var lastOffset = offset;
+				var lastLine = line;
+				#if hscriptPos
+				var lastTokenMin = tokenMin;
+				var lastTokenMax = tokenMax;
+				var lastOldTokenMin = oldTokenMin;
+				var lastOldTokenMax = oldTokenMax;
+				#end
 
 				function reset()
 				{
 					input = s;
 					readPos = i;
 					char = -1;
+					offset = lastOffset;
 					#if hscriptPos
 					tokens = new List();
+					tokenMin = oldTokenMin = currentPos;
+					tokenMax = oldTokenMax = currentPos;
 					#else
 					tokens = new haxe.ds.GenericStack<Token>();
 					#end
@@ -755,8 +766,14 @@ class Parser {
 				}
 				var endPos = readPos - 1;
 				reset();
-				input = s.substring(++i, endPos);
+				var startPos = ++i;
+				input = s.substring(startPos, endPos);
 				readPos = 0;
+				offset = lastOffset + startPos;
+				#if hscriptPos
+				tokenMin = oldTokenMin = currentPos;
+				tokenMax = oldTokenMax = currentPos;
+				#end
 				var a = new Array();
 				while( true ) {
 					var tk = token();
@@ -773,6 +790,14 @@ class Parser {
 				readPos = lastReadPos;
 				char = lastChar;
 				tokens = lastTokens;
+				offset = lastOffset;
+				line = lastLine;
+				#if hscriptPos
+				tokenMin = lastTokenMin;
+				tokenMax = lastTokenMax;
+				oldTokenMin = lastOldTokenMin;
+				oldTokenMax = lastOldTokenMax;
+				#end
 			}
 			else
 			{
