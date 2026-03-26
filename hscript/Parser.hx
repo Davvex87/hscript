@@ -1528,7 +1528,7 @@ class Parser {
 		return StringTools.fastCodeAt(input, readPos);
 	}
 
-	function readString( until ) {
+	function readString( until , allowInterpolation = false ) {
 		var c = 0;
 		var b = new StringBuf();
 		var esc = false;
@@ -1580,7 +1580,7 @@ class Parser {
 				esc = true;
 			else if( c == until )
 				break;
-			else if (c == '$'.code && peekChar() == '{'.code)
+			else if (allowInterpolation && c == '$'.code && peekChar() == '{'.code)
 			{
 				b.addChar('$'.code);
 				var brOpens = -1;
@@ -1760,8 +1760,8 @@ class Parser {
 			case "}".code: return TBrClose;
 			case "[".code: return TBkOpen;
 			case "]".code: return TBkClose;
-			case "'".code: return TConst( CString(readString(char), SingleQuotes) );
-			case '"'.code: return TConst( CString(readString(char), DoubleQuotes) );
+			case "'".code: return TConst( CString(readString(char, true), SingleQuotes) );
+			case '"'.code: return TConst( CString(readString(char, false), DoubleQuotes) );
 			case "?".code:
 				char = readChar();
 				if( char == ".".code )
