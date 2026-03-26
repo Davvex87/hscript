@@ -755,8 +755,7 @@ class Parser {
 				}
 				var endPos = readPos - 1;
 				reset();
-				// cool hack to quickly close expressions
-				input = s.substring(i, endPos) + ";}";
+				input = s.substring(++i, endPos);
 				readPos = 0;
 				var a = new Array();
 				while( true ) {
